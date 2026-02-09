@@ -7,6 +7,8 @@ where the outer list runs over independent systems.
 """
 import numpy as np
 import torch
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning,module="sklearn")
 from sklearn.feature_selection import VarianceThreshold
 from sklearn.preprocessing import StandardScaler
 from abc import ABC

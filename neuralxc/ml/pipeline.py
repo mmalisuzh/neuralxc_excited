@@ -12,6 +12,8 @@ import shutil
 import dill as pickle
 import numpy as np
 import torch
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning,module="sklearn")
 from sklearn.pipeline import Pipeline
 
 from ..projector import DensityProjector

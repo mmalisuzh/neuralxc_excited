@@ -3,6 +3,8 @@
 
 import numpy as np
 import torch
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning,module="sklearn")
 from sklearn.base import BaseEstimator
 from .pipeline import load_pipeline  #Keep for backwards compatibility of API
 

@@ -1,6 +1,8 @@
 import h5py
 import json
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning,module="sklearn")
 from sklearn.base import BaseEstimator
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LinearRegression

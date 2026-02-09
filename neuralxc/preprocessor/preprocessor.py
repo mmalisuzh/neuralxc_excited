@@ -11,6 +11,8 @@ from os.path import join as pjoin
 
 import numpy as np
 from dask.distributed import Client
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning,module="sklearn")
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from neuralxc.constants import Bohr

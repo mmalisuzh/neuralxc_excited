@@ -1,8 +1,15 @@
 import os
 
+#tmp
+from pathlib import Path
+from ase.io import read
+#tmp
+
 import h5py
 import numpy as np
 from ase.io import read
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning,module="sklearn")
 from sklearn.pipeline import Pipeline
 
 from neuralxc.datastructures.hdf5 import *
@@ -37,8 +44,13 @@ def add_data_driver(hdf5, system, method, add, traj='', density='', override=Fal
             if which == 'energy':
                 if traj:
                     try:
-                        read(traj)
-                        add_species(file, system, traj)
+                        #tmp
+                        traj_path = Path(traj).expanduser().resolve()
+                        read(str(traj_path))
+                        add_species(file, system, str(traj_path))
+                        #read(traj)
+                        #add_species(file, system, traj)
+                        #tmp
                         if zero is not None:
                             energies = np.array([a.get_potential_energy()\
                              for a in read(traj,':')])[ijk]

@@ -1,6 +1,8 @@
 import os
 
 import numpy as np
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning,module="sklearn")
 from sklearn.base import BaseEstimator, TransformerMixin
 from collections.abc import Mapping
 

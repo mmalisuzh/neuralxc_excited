@@ -8,6 +8,8 @@ from abc import abstractmethod
 
 import numpy as np
 import torch
+import warnings
+warnings.filterwarnings("ignore",category=DeprecationWarning,module="sklearn")
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from neuralxc.base import ABCRegistry
