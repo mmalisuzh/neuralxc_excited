@@ -35,6 +35,7 @@ def calculate_system(dir, atoms, app, kwargs):
         os.chdir(dir)
     eng = Engine(app, **kwargs)
     atoms = eng.compute(atoms)
+    print(' calculate_system, atoms: ', atoms)
     return atoms
 
 
@@ -67,14 +68,14 @@ def mbe_driver(atoms, app, workdir, kwargs, nworkers):
                   cell=a.get_cell()) for a in atoms for comb in itertools.combinations(range(n_mol), n)
         ]
         try:
-            os.mkdir(mbe_root + '/mbe_{}'.format(n))
+            os.mkdir(mbe_root + f'/mbe_{n}')
         except FileExistsError:
             pass
-        lower_results.append(calculate_distributed(new_atoms, app, mbe_root + '/mbe_{}'.format(n), kwargs, nworkers))
+        lower_results.append(calculate_distributed(new_atoms, app, mbe_root + f'/mbe_{n}', kwargs, nworkers))
 
     etot = np.array([a.get_potential_energy() for a in results])
     for i, lr in enumerate(lower_results[::-1]):
-        write(mbe_root + '/mbe_{}/results.traj'.format(n_mol - (i + 1)), lr)
+        write(mbe_root + f'/mbe_{n_mol - (i + 1)}/results.traj', lr)
         epart = np.array([((-1)**(i + 1)) * a.get_potential_energy() for a in lr]).reshape(len(etot), -1)
         epart = np.sum(epart, axis=-1)
         etot += epart
@@ -90,18 +91,22 @@ def calculate_distributed(atoms, app, workdir, kwargs, n_workers=-1):
 
     cwd = os.getcwd()
     if n_workers > 1:
-        print('Calculating {} systems on'.format(len(atoms)))
+        print(' neuralxc/preprocessor/driver.py calculate_distributed: n_workers > 1')
+        print(f'Calculating {len(atoms)} systems on')
         cluster = LocalCluster(n_workers=n_workers, threads_per_worker=1)
         print(cluster)
         client = Client(cluster)
         my_map = client.map
         get_result = lambda x: x.result()
     else:
+        print(' neuralxc/preprocessor/driver.py calculate_distributed: n_workers <= 1')
         my_map = map
         get_result = lambda x: x
 
     futures = my_map(calculate_system, [os.path.join(workdir, str(i)) for i, _ in enumerate(atoms)], atoms,
                      [app] * len(atoms), [kwargs] * len(atoms))
+
+    #print(' neuralxc/preprocessor/driver.py calculate_distributed: '+str(len(futures)))
 
     results = [get_result(f) for f in futures]
     os.chdir(cwd)
@@ -134,8 +139,10 @@ def driver(atoms, app, workdir, nworkers, kwargs):
     dir = os.path.abspath(workdir)
     # results = calculate_distributed(atoms, app, dir, kwargs, nworkers)
     if kwargs.get('mbe', False):
+        print(' neuralxc/preprocessor/driver.py driver: kwargs.get(mbe, False)')
         results = mbe_driver(atoms, app, dir, kwargs, nworkers)
     else:
+        print(' neuralxc/preprocessor/driver.py driver: other')
         results = calculate_distributed(atoms, app, dir, kwargs, nworkers)
     results_path = os.path.join(dir, 'results.traj')
     write(results_path, results)

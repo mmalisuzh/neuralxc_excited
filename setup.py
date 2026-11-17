@@ -9,7 +9,7 @@ import versioneer
 short_description = __doc__.split("\n")
 
 try:
-    with open("README.md", "r") as handle:
+    with open("README.md") as handle:
         long_description = handle.read()
 except:
     long_description = "\n".join(short_description[2:]),

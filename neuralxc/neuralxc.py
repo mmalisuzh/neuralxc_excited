@@ -19,7 +19,7 @@ class PySCFNXC(AtomicFunc):
         model_paths = glob(path + '/*')
         for mp in model_paths:
             if 'bas.json' == os.path.basename(mp):
-                mp  = json.loads(open(mp,'r').read())
+                mp  = json.loads(open(mp).read())
 
                 self.basis = ConfigFile({'preprocessor' : mp,
                 'engine':{'application': 'pyscf'}})['preprocessor']

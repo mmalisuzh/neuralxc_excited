@@ -94,9 +94,16 @@ def add_data(which, file, data, system, method, override=False, E0=None):
         else:
             cg.attrs.update({'E0': E0})
 
-    print('{} systems found, adding {}'.format(len(data), which))
+    print(f'{len(data)} systems found, adding {which}')
 
     def create_dataset():
+        # --- FIXED OVERWRITE CLEANUP FOR MODERN H5PY ---
+        if which in cg:
+            if override:
+                del cg[which] # Explicitly purge the stale dataset from the HDF5 group tree
+            else:
+                raise ValueError(f"Dataset {which} already exists. Set override=True to overwrite.")
+        # -----------------------------------------------        
         cg.create_dataset(which, data=data)
 
     try:

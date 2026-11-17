@@ -94,11 +94,11 @@ def fix_basis(config):
                 basis['X'].update(pre['basis'])
                 abspath = os.path.abspath(basis['X'].pop('file'))
                 try:
-                    open(abspath,'r')
+                    open(abspath)
                 except FileNotFoundError:
                     try:
                         abspath ='/'.join(abspath.split('/')[:-1]) + '/../' + abspath.split('/')[-1]
-                        open(abspath,'r')
+                        open(abspath)
                     except FileNotFoundError:
                         raise FileNotFoundError('Basis file not found')
 
@@ -148,7 +148,7 @@ class ConfigFile(MutableMapping):
 
         # if content is file path
         if isinstance(content, str):
-            content = json.loads(open(content, 'r').read())
+            content = json.loads(open(content).read())
 
         if not isinstance(content, Mapping):
             raise TypeError('content has to be Mapping')

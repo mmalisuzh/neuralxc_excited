@@ -36,6 +36,7 @@ except ModuleNotFoundError:
 test_dir = os.path.dirname(os.path.abspath(__file__))
 
 save_test_density_projector = False
+#save_test_radial_projector = True
 save_test_radial_projector = False
 
 

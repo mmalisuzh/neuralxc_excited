@@ -55,7 +55,7 @@ class Timer():
 
                 self.start_dict.pop(name)
             else:
-                raise ValueError('Timer with name {} was never started'.format(name))
+                raise ValueError(f'Timer with name {name} was never started')
 
     def create_report(self, path=None):
         # keys = list(self.start_dict.keys())

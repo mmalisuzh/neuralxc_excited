@@ -24,36 +24,40 @@ def parse_basis(basis_instructions):
     basis_strings = {}
     for species in basis_instructions:
         if len(species) < 3:
-            # if os.path.isfile(basis_instructions[species]['basis']):
             if 'basis' in basis_instructions:
-                if 'file' in basis_instructions['basis']:
-                    basis_strings[species] = open(basis_instructions['basis']['file'], 'r').read()
-                    bas = gtobasis.parse(basis_strings[species])
-                elif 'name' in basis_instructions['basis']:
-                    basis_strings[species] = basis_instructions['basis']['name']
-                    bas = basis_strings[species]
-                else:
-                    basis_strings[species] = basis_instructions['basis']
-                    bas = basis_strings[species]
+                basis_entry = basis_instructions['basis']
             else:
-                if os.path.isfile(basis_instructions[species]['basis']):
-                    basis_strings[species] = open(basis_instructions[species]['basis'], 'r').read()
+                basis_entry = basis_instructions[species]['basis']
+
+            if isinstance(basis_entry, dict):
+                if 'file' in basis_entry:
+                    basis_strings[species] = open(basis_entry['file']).read()
                     bas = gtobasis.parse(basis_strings[species])
-                else:
-                    basis_strings[species] = basis_instructions[species]['basis']
+                elif 'name' in basis_entry:
+                    basis_strings[species] = basis_entry['name']
                     bas = basis_strings[species]
+                else:
+                    raise ValueError(f"Unrecognized basis dictionary format: {basis_entry}")
+            elif isinstance(basis_entry, (str, bytes, os.PathLike)) and os.path.isfile(basis_entry):
+                basis_strings[species] = open(basis_entry).read()
+                bas = gtobasis.parse(basis_strings[species])
+            else:
+                basis_strings[species] = basis_entry
+                bas = basis_strings[species]
 
             spec = 'O' if species == 'X' else species
             try:
-                mol = gto.M(atom='{} 0 0 0'.format(spec), basis={spec: bas})
+                mol = gto.M(atom=f'{spec} 0 0 0', basis={spec: bas})
             except RuntimeError:
-                mol = gto.M(atom='{} 0 0 0'.format(spec), basis={spec: bas}, spin=1)
-            if 'basis' in basis_instructions:
+                mol = gto.M(atom=f'{spec} 0 0 0', basis={spec: bas}, spin=1)
+
+            if 'basis' in basis_instructions and isinstance(basis_instructions['basis'], dict):
                 sigma = basis_instructions['basis'].get('sigma', 2.0)
                 gamma = basis_instructions['basis'].get('gamma', 1.0)
             else:
                 sigma = basis_instructions[species].get('sigma', 2.0)
                 gamma = basis_instructions[species].get('gamma', 1.0)
+
             basis = {}
             for bi in range(mol.atom_nshells(0)):
                 l = mol.bas_angular(bi)
@@ -75,6 +79,62 @@ def parse_basis(basis_instructions):
             } for l in basis]
             full_basis[species] = basis
     return full_basis, basis_strings
+#def parse_basis(basis_instructions):
+#    full_basis = {}
+#    basis_strings = {}
+#    for species in basis_instructions:
+#        if len(species) < 3:
+#            # if os.path.isfile(basis_instructions[species]['basis']):
+#            if 'basis' in basis_instructions:
+#                if 'file' in basis_instructions['basis']:
+#                    basis_strings[species] = open(basis_instructions['basis']['file']).read()
+#                    bas = gtobasis.parse(basis_strings[species])
+#                elif 'name' in basis_instructions['basis']:
+#                    basis_strings[species] = basis_instructions['basis']['name']
+#                    bas = basis_strings[species]
+#                else:
+#                    basis_strings[species] = basis_instructions['basis']
+#                    bas = basis_strings[species]
+#            else:
+#                if os.path.isfile(basis_instructions[species]['basis']):
+#                    basis_strings[species] = open(basis_instructions[species]['basis']).read()
+#                    bas = gtobasis.parse(basis_strings[species])
+#                else:
+#                    basis_strings[species] = basis_instructions[species]['basis']
+#                    bas = basis_strings[species]
+#
+#            spec = 'O' if species == 'X' else species
+#            try:
+#                mol = gto.M(atom=f'{spec} 0 0 0', basis={spec: bas})
+#            except RuntimeError:
+#                mol = gto.M(atom=f'{spec} 0 0 0', basis={spec: bas}, spin=1)
+#            if 'basis' in basis_instructions:
+#                sigma = basis_instructions['basis'].get('sigma', 2.0)
+#                gamma = basis_instructions['basis'].get('gamma', 1.0)
+#            else:
+#                sigma = basis_instructions[species].get('sigma', 2.0)
+#                gamma = basis_instructions[species].get('gamma', 1.0)
+#            basis = {}
+#            for bi in range(mol.atom_nshells(0)):
+#                l = mol.bas_angular(bi)
+#                if l not in basis:
+#                    basis[l] = {'alpha': [], 'r_o': [], 'coeff': [], 'gamma': []}
+#                alpha = mol.bas_exp(bi)
+#                coeff = mol.bas_ctr_coeff(bi)
+#                r_o = alpha**(-1 / 2) * sigma * (1 + l / 5)
+#                basis[l]['alpha'].append(alpha)
+#                basis[l]['r_o'].append(r_o)
+#                basis[l]['gamma'].append(gamma)
+#                basis[l]['coeff'].append(coeff)
+#            basis = [{
+#                'l': l,
+#                'alpha': basis[l]['alpha'],
+#                'r_o': basis[l]['r_o'],
+#                'gamma': basis[l]['gamma'],
+#                'coeff': basis[l]['coeff']
+#            } for l in basis]
+#            full_basis[species] = basis
+#    return full_basis, basis_strings
 
 
 class GaussianProjectorMixin():
@@ -163,9 +223,9 @@ class GaussianProjectorMixin():
                     bas = basis_strings[species]
                 spec = 'O' if species == 'X' else species
                 try:
-                    mol = gto.M(atom='{} 0 0 0'.format(spec), basis={spec: bas})
+                    mol = gto.M(atom=f'{spec} 0 0 0', basis={spec: bas})
                 except RuntimeError:
-                    mol = gto.M(atom='{} 0 0 0'.format(spec), basis={spec: bas}, spin=1)
+                    mol = gto.M(atom=f'{spec} 0 0 0', basis={spec: bas}, spin=1)
                 bp = BasisPadder(mol)
                 il = bp.indexing_l[spec][0]
                 ir = bp.indexing_r[spec][0]

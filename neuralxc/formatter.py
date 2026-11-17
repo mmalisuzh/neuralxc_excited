@@ -55,7 +55,7 @@ class Formatter(TransformerMixin, BaseEstimator):
             if not isinstance(self._rule, dict):
                 basis = self._basis[key]
                 rule = [
-                    '{},{},{}'.format(n, l, m) for n in range(0, basis['n']) for l in range(0, basis['l'])
+                    f'{n},{l},{m}' for n in range(0, basis['n']) for l in range(0, basis['l'])
                     for m in range(-l, l + 1)
                 ]
             else:
@@ -114,9 +114,14 @@ class SpeciesGrouper(BaseEstimator, TransformerMixin):
                 if len(key) < 4 and key != 'X':
                     self._attrs.pop(key)
         if not isinstance(sys_species, list):
-            raise ValueError('sys_species must be a list but is {}'.format(sys_species))
+            raise ValueError(f'sys_species must be a list but is {sys_species}')
         self._sys_species = sys_species
         self._spec_agnostic = spec_agnostic
+
+    # ADD THIS METHOD TO SPECIESGROUPER FOR MODERN COMPLIANCE
+    def set_output(self, *, transform=None):
+        """Bypasses scikit-learn container transformation tracking loops."""
+        return self        
 
     def get_params(self, *args, **kwargs):
         return {'attrs': self._attrs, 'sys_species': self._sys_species, 'spec_agnostic': self._spec_agnostic}

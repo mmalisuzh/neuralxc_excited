@@ -30,7 +30,7 @@ def DensityProjector(**kwargs):
 
     registry = BaseProjector.get_registry()
     if not projector_type in registry:
-        raise Exception('Projector: {} not registered'.format(projector_type))
+        raise Exception(f'Projector: {projector_type} not registered')
 
     return registry[projector_type](**kwargs)
 

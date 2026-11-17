@@ -20,6 +20,17 @@ from neuralxc.preprocessor import driver
 from neuralxc.symmetrizer import symmetrizer_factory
 from neuralxc.utils import ConfigFile
 
+# --- GLOBAL PATCH TO BYPASS SCLEARN PIPELINE METADATA INTERCEPTORS ---
+import sklearn.utils._set_output
+def dummy_wrap_method_output(getattr_method, hasattr_method):
+    # Completely strips off scikit-learn's automatic tuple wrapping layer
+    return getattr_method
+sklearn.utils._set_output._wrap_method_output = dummy_wrap_method_output
+#import sklearn.utils._set_output
+# Force scikit-learn's wrapping utility to return the underlying math functions completely raw
+#sklearn.utils._set_output._wrap_method_output = lambda getattr_method, hasattr_method: getattr_method
+# ---------------------------------------------------------------------
+
 __all__ = ['serialize', 'sc_driver', 'fit_driver', 'eval_driver']
 os.environ['KMP_AFFINITY'] = 'none'
 os.environ['PYTHONWARNINGS'] = 'ignore::DeprecationWarning'
@@ -71,7 +82,7 @@ def parse_sets_input(path):
         hdf5[1],hdf5[2]: lists of baseline(,target) datasets
     """
     hdf5 = ['', [], []]
-    with open(path, 'r') as setsfile:
+    with open(path) as setsfile:
         line = setsfile.readline().rstrip()
         hdf5[0] = line  #datafile location
         line = setsfile.readline().rstrip()
@@ -181,12 +192,12 @@ def sc_driver(xyz,
 
     iteration = 0
     if model0:
-        open('sets.inp', 'w').write('data.hdf5 \n *system/it{} \t system/ref'.format(iteration))
+        open('sets.inp', 'w').write(f'data.hdf5 \n *system/it{iteration} \t system/ref')
     else:
-        open('sets.inp', 'w').write('data.hdf5 \n system/it{} \t system/ref'.format(iteration))
+        open('sets.inp', 'w').write(f'data.hdf5 \n system/it{iteration} \t system/ref')
 
     if sets:
-        open('sets.inp', 'a').write('\n' + open(sets, 'r').read())
+        open('sets.inp', 'a').write('\n' + open(sets).read())
     mkdir('workdir')
     driver(read(xyz, ':'),
            pre['preprocessor'].get('application', 'siesta'),
@@ -195,7 +206,7 @@ def sc_driver(xyz,
            kwargs=engine_kwargs)
     print('\nProjecting onto basis ...')
     print('-----------------------------\n')
-    pre_driver(xyz, 'workdir', preprocessor='pre.json', dest='data.hdf5/system/it{}'.format(iteration))
+    pre_driver(xyz, 'workdir', preprocessor='pre.json', dest=f'data.hdf5/system/it{iteration}')
     add_data_driver(hdf5='data.hdf5',
                     system='system',
                     method='it0',
@@ -207,7 +218,7 @@ def sc_driver(xyz,
     print('\nBaseline accuracy')
     print('-----------------------------\n')
     statistics_sc = \
-    eval_driver(hdf5=['data.hdf5','system/it{}'.format(iteration),
+    eval_driver(hdf5=['data.hdf5',f'system/it{iteration}',
             'system/ref'])
 
     open('statistics_sc', 'w').write(json.dumps(statistics_sc))
@@ -229,18 +240,18 @@ def sc_driver(xyz,
         else:
             iteration = 0
 
-        print('\n\n====== Iteration {} ======'.format(it_label))
-        open('sets.inp', 'w').write('data.hdf5 \n *system/it{} \t system/ref'.format(iteration))
+        print(f'\n\n====== Iteration {it_label} ======')
+        open('sets.inp', 'w').write(f'data.hdf5 \n *system/it{iteration} \t system/ref')
 
         if sets:
-            open('sets.inp', 'a').write('\n' + open(sets, 'r').read())
+            open('sets.inp', 'a').write('\n' + open(sets).read())
         mkdir('workdir')
 
-        shcopytreedel('best_model', 'model_it{}'.format(it_label))
-        serialize('model_it{}'.format(it_label), 'model_it{}.jit'.format(it_label),
+        shcopytreedel('best_model', f'model_it{it_label}')
+        serialize(f'model_it{it_label}', f'model_it{it_label}.jit',
                   'radial' in pre['preprocessor'].get('projector_type', 'ortho'))
 
-        engine_kwargs = {'nxc': '../../model_it{}.jit'.format(it_label), 'skip_calculated': False}
+        engine_kwargs = {'nxc': f'../../model_it{it_label}.jit', 'skip_calculated': False}
         engine_kwargs.update(pre.get('engine', {}))
 
         print('\nRunning SCF calculations ...')
@@ -253,11 +264,11 @@ def sc_driver(xyz,
 
         print('\nProjecting onto basis...')
         print('-----------------------------\n')
-        pre_driver(xyz, 'workdir', preprocessor='pre.json', dest='data.hdf5/system/it{}'.format(iteration))
+        pre_driver(xyz, 'workdir', preprocessor='pre.json', dest=f'data.hdf5/system/it{iteration}')
 
         add_data_driver(hdf5='data.hdf5',
                         system='system',
-                        method='it{}'.format(iteration),
+                        method=f'it{iteration}',
                         add=['energy'],
                         traj='workdir/results.traj',
                         override=True,
@@ -266,12 +277,12 @@ def sc_driver(xyz,
         print('-----------------------------\n')
 
         statistics_sc = \
-        eval_driver(hdf5=['data.hdf5','system/it{}'.format(iteration),
+        eval_driver(hdf5=['data.hdf5',f'system/it{iteration}',
                 'system/ref'], printout=False)
 
         open('statistics_sc', 'a').write('\n' + json.dumps(statistics_sc))
-        open('model_it{}/statistics_sc'.format(it_label), 'w').write('\n' + json.dumps(statistics_sc))
-        results_df = pd.DataFrame([json.loads(line) for line in open('statistics_sc','r')])
+        open(f'model_it{it_label}/statistics_sc', 'w').write('\n' + json.dumps(statistics_sc))
+        results_df = pd.DataFrame([json.loads(line) for line in open('statistics_sc')])
         results_df.index.name = 'Iteration'
         print(results_df.to_markdown())
         print('')
@@ -294,10 +305,10 @@ def sc_driver(xyz,
     if testfile:
         mkdir('testing')
 
-        shcopy('sc/data.hdf5'.format(iteration), 'testing/data.hdf5')
-        shcopytree('sc/model_it{}.jit'.format(it_label), 'testing/nxc.jit')
-        shcopytree('sc/model_it{}'.format(it_label), 'final_model/')
-        shcopytree('sc/model_it{}.jit'.format(it_label), 'final_model.jit/')
+        shcopy(f'sc/data.hdf5', 'testing/data.hdf5')
+        shcopytree(f'sc/model_it{it_label}.jit', 'testing/nxc.jit')
+        shcopytree(f'sc/model_it{it_label}', 'final_model/')
+        shcopytree(f'sc/model_it{it_label}.jit', 'final_model.jit/')
         os.chdir('testing')
         mkdir('workdir')
         engine_kwargs = {'nxc': '../../nxc.jit'}
@@ -373,14 +384,14 @@ def fit_driver(preprocessor, hyper, hdf5=None, sets='', sample='', cutoff=0.0, m
         for set in apply_to:
             selection = (data[:, 0] == set)
             prediction = new_model.predict(data)[set][:, 0]
-            print('Dataset {} old STD: {}'.format(set, np.std(data[selection][:, -1])))
+            print(f'Dataset {set} old STD: {np.std(data[selection][:, -1])}')
             data[selection, -1] += prediction
-            print('Dataset {} new STD: {}'.format(set, np.std(data[selection][:, -1])))
+            print(f'Dataset {set} new STD: {np.std(data[selection][:, -1])}')
 
     if sample != '':
         sample = np.load(sample)
         data = data[sample]
-        print("Using sample of size {}".format(len(sample)))
+        print(f"Using sample of size {len(sample)}")
 
     np.random.shuffle(data)
     if hyperopt:

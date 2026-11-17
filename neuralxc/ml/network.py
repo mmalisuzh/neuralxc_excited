@@ -130,7 +130,6 @@ def train_net(net, dataloader, dataloader_val=None, max_steps=10000, n_checkpoin
     MIN_RATE = 1e-7
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer,
                                                            'min',
-                                                           verbose=True,
                                                            patience=10,
                                                            min_lr=MIN_RATE)
 
@@ -149,7 +148,7 @@ def train_net(net, dataloader, dataloader_val=None, max_steps=10000, n_checkpoin
             epoch_loss += loss.item()
         logs['log loss'] = np.sqrt(epoch_loss / len(dataloader))
         for i, param_group in enumerate(optimizer.param_groups):
-            logs['lr_{}'.format(i)] = float(param_group['lr'])
+            logs[f'lr_{i}'] = float(param_group['lr'])
 
         if logs['lr_0'] <= MIN_RATE:
             return net
@@ -166,12 +165,12 @@ def train_net(net, dataloader, dataloader_val=None, max_steps=10000, n_checkpoin
                 logs['val loss'] = np.sqrt(val_loss / len(dataloader_val))
             else:
                 logs['val loss'] = 0
-            print('Epoch {} ||'.format(epoch), ' Training loss : {:.6f}'.format(logs['log loss']),
+            print(f'Epoch {epoch} ||', ' Training loss : {:.6f}'.format(logs['log loss']),
                   ' Validation loss : {:.6f}'.format(logs['val loss']), ' Learning rate: {}'.format(logs['lr_0']))
     return net
 
 
-class Dataset(object):
+class Dataset:
     def __init__(self, rho, energies):
         self.rho = rho
         self.energies = energies.reshape(-1, 1)
@@ -192,7 +191,7 @@ class Dataset(object):
 
 class EnergyNetwork(torch.nn.Module):
     def __init__(self, n_nodes, n_layers, activation):
-        super(EnergyNetwork, self).__init__()
+        super().__init__()
         self.n_nodes = n_nodes
         self.n_layers = n_layers
         if hasattr(torch.nn, activation):

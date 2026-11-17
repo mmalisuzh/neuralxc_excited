@@ -79,7 +79,7 @@ class PySCFDensityGetter(BaseDensityGetter):
         mol, results = load_scf(file_path)
         res = get_dm(results['mo_coeff'], results['mo_occ']), mol, (results['mo_coeff'], results['mo_occ'])
         if self.valence:
-            print('Using only valence density'.format(self.valence))
+            print(f'Using only valence density')
             core = 0
             for aidx, _ in enumerate(mol.atom):
                 charge = mol.atom_charge(aidx)
@@ -107,7 +107,7 @@ class PySCFRadDensityGetter(BaseDensityGetter):
     def get_density(self, file_path, return_dict=False):
         mol, results = load_scf(file_path)
         if self.valence:
-            print('Using only valence density'.format(self.valence))
+            print(f'Using only valence density')
             core = 0
             for aidx, _ in enumerate(mol.atom):
                 charge = mol.atom_charge(aidx)
@@ -175,7 +175,7 @@ class SiestaDensityGetter(BaseDensityGetter):
         else:
             raise Exception('get_data_bin cannot handle non-cubic unitcells or spin')
 
-        block = '<' + 'I{}fI'.format(a) * a * a
+        block = '<' + f'I{a}fI' * a * a
         content = np.array(struct.unpack(block, bin_file.read(struct.calcsize(block))))
 
         rho = content.reshape(a + 2, a, a, order='F')[1:-1, :, :]
@@ -203,7 +203,7 @@ class SiestaDensityGetter(BaseDensityGetter):
         unitcell = np.zeros([3, 3])
         grid = np.zeros([4])
 
-        with open(file_path, 'r') as rhofile:
+        with open(file_path) as rhofile:
 
             # unit cell (in Bohr)
             for i in range(0, 3):
@@ -228,10 +228,10 @@ class SiestaDensityGetter(BaseDensityGetter):
     def get_forces(self, path, n_atoms=-1):
         """find forces in siesta .out file for first n_atoms atoms
         """
-        with open(path, 'r') as infile:
+        with open(path) as infile:
             infile.seek(0)
 
-            p = re.compile("siesta: Atomic forces \(eV/Ang\):\nsiesta:.*siesta:    Tot ", re.DOTALL)
+            p = re.compile("siesta: Atomic forces \\(eV/Ang\\):\nsiesta:.*siesta:    Tot ", re.DOTALL)
             p2 = re.compile(" 1 .*siesta: -", re.DOTALL)
             alltext = p.findall(infile.read())
             alltext = p2.findall(alltext[0])
@@ -266,6 +266,6 @@ def density_getter_factory(application, *args, **kwargs):
     registry = BaseDensityGetter.get_registry()
 
     if not application in registry:
-        raise Exception('DensityGetter: {} not registered'.format(application))
+        raise Exception(f'DensityGetter: {application} not registered')
 
     return registry[application](*args, **kwargs)

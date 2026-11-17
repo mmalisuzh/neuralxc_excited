@@ -41,7 +41,7 @@ def Engine(app, **kwargs):
         app = 'pyscf'
     registry = BaseEngine.get_registry()
     if not app in registry:
-        raise Exception('Engine: {} not registered'.format(app))
+        raise Exception(f'Engine: {app} not registered')
 
     return registry[app](**kwargs)
 

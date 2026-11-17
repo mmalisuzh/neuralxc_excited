@@ -54,7 +54,7 @@ def Symmetrizer(symmetrize_instructions):
 
     print('Using symmetrizer ', symtype)
     if not symtype in registry:
-        raise Exception('Symmetrizer: {} not registered'.format(symtype))
+        raise Exception(f'Symmetrizer: {symtype} not registered')
 
     return registry[symtype](sym_ins)
 
@@ -74,6 +74,11 @@ class BaseSymmetrizer(TorchModule, BaseEstimator, TransformerMixin, metaclass=Sy
         TorchModule.__init__(self)
         self._attrs = symmetrize_instructions
         self._cgs = 0
+
+    # ADD THIS METHOD TO BASESYMMETRIZER FOR MODERN COMPLIANCE
+    def set_output(self, *, transform=None):
+        """Bypasses scikit-learn container transformation tracking loops."""
+        return self
 
     def forward(self, C):
         return BaseSymmetrizer.get_symmetrized(self, C)

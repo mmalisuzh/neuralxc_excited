@@ -41,10 +41,30 @@ def shcopytree(src, dest):
 @pytest.mark.skipif(not pyscf_found, reason='requires pyscf')
 def test_radial_model():
     from pyscf import dft, gto
+    #from pyscf.dft import gen_grid, radi
     mol = gto.M(atom='O  0  0  0; H  0 1 0 ; H 0 0 1', basis='6-31g*')
     mf = dft.RKS(mol)
     mf.xc = 'PBE'
     mf.grids.level = 5
+
+    ## ----------------------------------------------------------------------
+    ## --- PYSCF LEGBACK COMPATIBILITY: FORCE GRIDS EQUAL TO V1.7 BASELINE ---
+    ## ----------------------------------------------------------------------
+    ## 1. Force the legacy Becke multi-center partition scheme 
+    ## (PySCF 2.x defaults to an updated, smooth partition framework)
+    ## or use: dft.gen_grid.original_becke
+    #mf.grids.becke_scheme = gen_grid.original_becke
+
+    ## 2. Force the legacy atomic integration pruning scheme
+    ## (PySCF 2.x defaults to 'nwchem'; PySCF 1.7 defaulted to 'treutler')
+    #mf.grids.prune        = gen_grid.treutler_prune
+
+    ## 3. Force the classic grid point distribution radii layout
+    ## (PySCF 2.x updated its coordinate shell distributions for many elements)
+    ## Ensures old coordination scaling
+    #mf.grids.radii_adjust = radi.treutler_atomic_radii_adjust
+    ## ----------------------------------------------------------------------
+
     mf.kernel()
 
     model = xc.NeuralXC(test_dir[:-len('neuralxc/tests/')] + '/examples/models/NXC-W01/nxc_w01_radial.jit')
@@ -106,7 +126,7 @@ def test_sc(projector):
     shcopytree(test_dir + '/driver_data', test_dir + '/driver_data_tmp')
     cwd = os.getcwd()
     os.chdir(test_dir + '/driver_data_tmp')
-    sc_driver('water.traj', 'pre_sc_{}.json'.format(projector),
+    sc_driver('water.traj', f'pre_sc_{projector}.json',
         'hyper.json', maxit=1, hyperopt=True)
     os.chdir(test_dir + '/driver_data_tmp')
 

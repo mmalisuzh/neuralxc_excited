@@ -58,7 +58,8 @@ def add_data_driver(hdf5, system, method, add, traj='', density='', override=Fal
                             energies = E_from_atoms(read(traj, ':'))
                             zero = 0
                     except ValueError:
-                        energies = np.load(traj)
+#                        energies = np.load(traj)
+                        energies = np.load(traj, allow_pickle=True)
 
                     if addto:
                         energies0 = file[addto][:]
@@ -82,10 +83,11 @@ def add_data_driver(hdf5, system, method, add, traj='', density='', override=Fal
                     raise Exception('Must provide a trajectory file')
             elif which == 'density':
                 add_species(file, system, traj)
-                data = np.load(density)[ijk]
+#                data = np.load(density)[ijk]
+                data = np.load(density, allow_pickle=True)[ijk]
                 add_density((density.split('/')[-1]).split('.')[0], file, data, system, method, override)
             else:
-                raise Exception('Option {} not recognized'.format(which))
+                raise Exception(f'Option {which} not recognized')
 
         if density and not 'density' in add:
             add.append('density')

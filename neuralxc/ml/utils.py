@@ -225,7 +225,7 @@ def match_hyperparameter(hp, parameters):
         if hp == par:
             matches.append(par)
     if len(matches) != 1:
-        raise ValueError('{} matches found for hyperparameter {}. Must be exactly 1'.format(len(matches), hp))
+        raise ValueError(f'{len(matches)} matches found for hyperparameter {hp}. Must be exactly 1')
     return matches[0]
 
 
@@ -274,7 +274,7 @@ def get_grid_cv(hdf5, preprocessor, inputfile, spec_agnostic=False):
         pre = ConfigFile(preprocessor)
     else:
         pre = preprocessor
-    inp = json.loads(open(inputfile, 'r').read())
+    inp = json.loads(open(inputfile).read())
 
     with h5py.File(hdf5[0], 'r') as datafile:
         if not isinstance(hdf5[1], list):
@@ -369,17 +369,22 @@ def get_preprocessor(pre, atoms, src_path):
     preprocessor = Preprocessor(basis, src_path, atoms, num_workers=pre.get('n_workers', 1))
     return preprocessor
 
-
 class SampleSelector(BaseEstimator):
     def __init__(self, n_instances, random_state=None):
-        self._n_instances = n_instances
-        self._random_state = random_state
+        # Modern scikit-learn requires instance variables to match __init__ argument names exactly
+        self.n_instances = n_instances
+        self.random_state = random_state
+        self.is_fit = False
+
+    def __sklearn_is_fitted__(self):
+        """Informs modern scikit-learn pipelines that this estimator is fit."""
+        return getattr(self, "is_fit", False)
 
     def fit(self, X, y=None):
-        pass
+        self.is_fit = True
+        return self
 
     def predict(self, X):
-
         if isinstance(X, tuple):
             X = X[0]
         if not isinstance(X, list):
@@ -391,12 +396,12 @@ class SampleSelector(BaseEstimator):
             indices[:] = np.arange(len(data)).reshape(-1, 1)
             picks[idx] += self.sample_clusters(atomic_shape(data),
                                                indices.flatten(),
-                                               self._n_instances,
+                                               self.n_instances,
                                                picked=picks[idx],
-                                               random_state=self._random_state)
+                                               random_state=self.random_state)
         picks = picks[0]
         np.random.shuffle(picks)
-        return picks[:self._n_instances]
+        return picks[:self.n_instances]
 
     @staticmethod
     def sample_clusters(data,
@@ -421,3 +426,54 @@ class SampleSelector(BaseEstimator):
                 sampled.append(indices[choice])
 
         return sampled
+#class SampleSelector(BaseEstimator):
+#    def __init__(self, n_instances, random_state=None):
+#        self._n_instances = n_instances
+#        self._random_state = random_state
+#
+#    def fit(self, X, y=None):
+#        pass
+#
+#    def predict(self, X):
+#
+#        if isinstance(X, tuple):
+#            X = X[0]
+#        if not isinstance(X, list):
+#            X = [X]
+#        picks = [[] * len(X)]
+#        for idx, key, data in expand(X):
+#            data = data[0]
+#            indices = np.zeros(data.shape[:-1], dtype=int)
+#            indices[:] = np.arange(len(data)).reshape(-1, 1)
+#            picks[idx] += self.sample_clusters(atomic_shape(data),
+#                                               indices.flatten(),
+#                                               self._n_instances,
+#                                               picked=picks[idx],
+#                                               random_state=self._random_state)
+#        picks = picks[0]
+#        np.random.shuffle(picks)
+#        return picks[:self._n_instances]
+#
+#    @staticmethod
+#    def sample_clusters(data,
+#                        indices,
+#                        n_samples,
+#                        picked=[],
+#                        cluster_method=KMeans,
+#                        pca_threshold=0.999,
+#                        random_state=None):
+#
+#        clustering = cluster_method(n_samples, random_state=random_state).fit(data)
+#        labels = clustering.labels_
+#        centers = clustering.cluster_centers_
+#
+#        sampled = []
+#        nbrs = NearestNeighbors(n_neighbors=1, algorithm='ball_tree').fit(data)
+#        np.random.seed(random_state)
+#        for center, label in zip(centers, np.unique(labels)):  # Loop over clusters
+#            _, idx = nbrs.kneighbors(center.reshape(1, -1))
+#            choice = idx[0]
+#            if not choice in picked:
+#                sampled.append(indices[choice])
+#
+#        return sampled

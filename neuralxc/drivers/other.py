@@ -45,9 +45,9 @@ def plot_basis(basis):
                 rad = [rad]
             for ir, rl in enumerate(rad):
                 if ir == 0:
-                    plt.plot(r, rl, label='l = {}'.format(l), color='C{}'.format(l))
+                    plt.plot(r, rl, label=f'l = {l}', color=f'C{l}')
                 else:
-                    plt.plot(r, rl, color='C{}'.format(l))
+                    plt.plot(r, rl, color=f'C{l}')
         # plt.ylim(0,1)
         plt.legend()
         plt.show()
@@ -60,7 +60,7 @@ def get_real_basis(atoms, basis, spec_agnostic=False):
     real_basis = {}
     is_file = os.path.isfile(basis)
     if is_file:
-        parsed_basis = gto.basis.parse(open(basis, 'r').read())
+        parsed_basis = gto.basis.parse(open(basis).read())
     if spec_agnostic:
         symbols = np.array(['O'])
     else:
@@ -115,7 +115,7 @@ def fetch_default_driver(kind, hint='', out=''):
 
     from collections import abc
     if hint:
-        hint_cont = json.load(open(hint, 'r'))
+        hint_cont = json.load(open(hint))
     else:
         hint_cont = {}
 
@@ -137,9 +137,9 @@ def fetch_default_driver(kind, hint='', out=''):
         for key, value in nested_dict_iter(hint_cont):
             if key == 'application':
                 app = value
-        df_cont = json.load(open(os.path.dirname(__file__) + '/../data/pre_{}.json'.format(app), 'r'))
+        df_cont = json.load(open(os.path.dirname(__file__) + f'/../data/pre_{app}.json'))
     else:
-        df_cont = json.load(open(os.path.dirname(__file__) + '/../data/hyper.json', 'r'))
+        df_cont = json.load(open(os.path.dirname(__file__) + '/../data/hyper.json'))
 
     if hint:
         for key1 in df_cont:
@@ -211,7 +211,15 @@ def pre_driver(xyz, srcdir, preprocessor, dest='.tmp/'):
         if 'hdf5' in dest:
             add_data_driver(hdf5=file, system=system, method=method, density=filename, add=[], traj=xyz, override=True)
 
-            f = h5py.File(file)
+            # --- FIXED APID-AWARE HDF5 PERMISSIONS LAYER ---
+            try:
+                # Try opening the existing dataset file for safe modifications
+                f = h5py.File(file, 'r+')
+            except (FileNotFoundError, OSError):
+                # If the scratch file is completely missing, compile it fresh from scratch
+                f = h5py.File(file, 'w')
+            # -----------------------------------------------
+            #f = h5py.File(file, 'a')
             f[system].attrs.update({'species': preprocessor.species_string})
             f.close()
     if delete_workdir:

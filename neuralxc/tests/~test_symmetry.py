@@ -60,7 +60,7 @@ def test_density_projector():
     # basis_rep = varthr.fit_transform(basis_rep)
     mask = {}
     for spec in basis_rep:
-        mask = ((np.mean(basis_rep[spec], axis=0) > 1e-2))
+        mask = (np.mean(basis_rep[spec], axis=0) > 1e-2)
         basis_rep[spec] = basis_rep[spec][:, mask]
     print(np.ptp(basis_rep['C'], axis=0) / np.mean(basis_rep['C'], axis=0))
     print(np.ptp(basis_rep['H'], axis=0) / np.mean(basis_rep['H'], axis=0))

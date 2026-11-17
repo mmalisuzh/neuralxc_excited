@@ -13,6 +13,12 @@ import neuralxc as xc
 from neuralxc.constants import Bohr, Hartree
 from neuralxc.drivers import *
 
+# --- MONKEY PATCH TO STRIP SKLEARN AUTO-WRAPPING INTERCEPTORS ---
+import sklearn.utils._set_output
+# Force the internal wrapper to return the raw function untouched
+sklearn.utils._set_output._wrap_method_output = lambda getattr_method, hasattr_method: getattr_method
+# ----------------------------------------------------------------
+
 test_dir = os.path.dirname(os.path.abspath(__file__))
 
 if 'driver_data_tmp' in os.listdir(test_dir):
@@ -52,9 +58,9 @@ def test_eval():
     os.chdir(test_dir + '/driver_data_tmp')
     eval_driver(hdf5=['data.hdf5', 'system/it1', 'system/ref'])
 
-    eval_driver(model='model_old', hdf5=['data.hdf5', 'system/it0', 'system/ref'])
+    eval_driver(model='model', hdf5=['data.hdf5', 'system/it0', 'system/ref'])
 
-    eval_driver(model='model_old', hdf5=['data.hdf5', 'system/it0', 'system/ref'], predict=True, dest='prediction')
+    eval_driver(model='model', hdf5=['data.hdf5', 'system/it0', 'system/ref'], predict=True, dest='prediction')
 
     os.chdir(cwd)
     shutil.rmtree(test_dir + '/driver_data_tmp')

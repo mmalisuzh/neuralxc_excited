@@ -8,8 +8,8 @@ import os
 import shutil
 
 from ase.calculators.calculator import Calculator, all_changes
-from ase.calculators.siesta.base_siesta import *
-from ase.calculators.siesta.siesta import Siesta
+from ase.calculators.siesta import *
+#from ase.calculators.siesta.siesta import Siesta
 
 
 class CustomSiesta(Siesta):
@@ -31,16 +31,16 @@ class CustomSiesta(Siesta):
         filename = os.path.join(self.directory, self.label + '.fdf')
         # add custom fdf
         if self.fdf_path:
-            with open(self.fdf_path, 'r') as custom_fdf:
+            with open(self.fdf_path) as custom_fdf:
                 all_custom_keys = [list(entry.keys())[0]\
                  for _, entry in next_fdf_entry(custom_fdf)]
 
             filename_tmp = os.path.join(self.directory, self.label + '.tmp')
             with open(filename_tmp, 'w') as tmp_file:
-                with open(self.fdf_path, 'r') as custom_fdf:
+                with open(self.fdf_path) as custom_fdf:
                     tmp_file.write(custom_fdf.read())
 
-                with open(filename, 'r') as ase_fdf:
+                with open(filename) as ase_fdf:
                     for is_block, entry in next_fdf_entry(ase_fdf):
                         if not list(entry.keys())[0] in all_custom_keys:
                             if 'pao' in list(entry.keys())[0] \
@@ -58,12 +58,12 @@ class CustomSiesta(Siesta):
                                 tmp_file.write(' '.join(list(entry.items())[0]))
                                 tmp_file.write('\n')
 
-            with open(filename_tmp, 'r') as tmp_file:
+            with open(filename_tmp) as tmp_file:
                 with open(filename, 'w') as ase_fdf:
                     ase_fdf.write(tmp_file.read())
         if self.nxc:
             with open(filename, 'a') as ase_fdf:
-                ase_fdf.write('NeuralXC {} \n'.format(self.nxc))
+                ase_fdf.write(f'NeuralXC {self.nxc} \n')
 
     def _write_species(self, f, atoms):
         """Write input related the different species.
@@ -138,7 +138,7 @@ class CustomSiesta(Siesta):
                 fraction = float(vc + paec) / vc
                 pseudo_head = name[:-4]
                 fractional_command = os.environ['SIESTA_UTIL_FRACTIONAL']
-                cmd = '%s %s %.7f' % (fractional_command, pseudo_head, fraction)
+                cmd = '{} {} {:.7f}'.format(fractional_command, pseudo_head, fraction)
                 os.system(cmd)
 
                 pseudo_head += '-Fraction-%.5f' % fraction
@@ -159,10 +159,10 @@ class CustomSiesta(Siesta):
                 pao_basis.append(spec['basis_set'].script(label))
             else:
                 basis_sizes.append(("    " + label, spec['basis_set']))
-        f.write((format_fdf('ChemicalSpecieslabel', chemical_labels)))
+        f.write(format_fdf('ChemicalSpecieslabel', chemical_labels))
         f.write('\n')
-        f.write((format_fdf('PAO.Basis', pao_basis)))
-        f.write((format_fdf('PAO.BasisSizes', basis_sizes)))
+        f.write(format_fdf('PAO.Basis', pao_basis))
+        f.write(format_fdf('PAO.BasisSizes', basis_sizes))
         f.write('\n')
 
     def read_ion(self, atoms):
@@ -208,7 +208,7 @@ class CustomSiesta(Siesta):
         if fname is None:
             fname = self.prefix
         if ext is not None:
-            fname = '{}.{}'.format(fname, ext)
+            fname = f'{fname}.{ext}'
         return os.path.join(self.directory, fname)
 
 

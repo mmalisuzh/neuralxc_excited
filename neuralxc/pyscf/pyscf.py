@@ -13,7 +13,7 @@ from pyscf import dft, gto
 from pyscf.dft import RKS
 from pyscf.lib.numpy_helper import NPArrayWithTag
 from pyscf.scf import RKS
-from scipy.special import sph_harm
+from scipy.special import sph_harm_y
 
 import neuralxc
 
@@ -26,7 +26,7 @@ def RKS(mol, nxc='', **kwargs):
     that uses a NeuralXC potential
     """
     mf = dft.RKS(mol, **kwargs)
-    if not nxc is '':
+    if not nxc == '':
         model = neuralxc.PySCFNXC(nxc)
         model.initialize(mol)
         mf.get_veff = veff_mod(mf, model)
@@ -34,26 +34,53 @@ def RKS(mol, nxc='', **kwargs):
 
 
 def compute_KS(atoms, path='pyscf.chkpt', basis='ccpvdz', xc='PBE', nxc='', **kwargs):
+    from pyscf.dft import gen_grid, radi
     """ Given an ase atoms object, run a pyscf RKS calculation on it and
     return the results
     """
     pos = atoms.positions
+    print(' pos: ', pos)
     spec = atoms.get_chemical_symbols()
+    print(' spec: ', spec)
     mol_input = [[s, p] for s, p in zip(spec, pos)]
     # mol = gto.M(atom=mol_input, basis=basis, **kwargs)
     mol = gto.M(atom=mol_input, basis=basis)
-    # mol.verbose= 4
+    mol.verbose= 4
     if nxc:
         model_paths = glob(nxc + '/*')
         if any(['projector' in path for path in model_paths]):
+            print(' compute_KS: Model that uses projector on radial grid')
             mf = RKSrad(mol, nxc=nxc, nxc_kind='atomic')  # Model that uses projector on radial grid
         else:
+            print(' compute_KS: Model that uses overlap integrals and density matrix')
             mf = RKS(mol, nxc=nxc)  # Model that uses overlap integrals and density matrix
     else:
+        print(' compute_KS: RKS')
         mf = dft.RKS(mol)
     # mf.set(chkfile=path)
     mf.chkfile=path
+    print(' neuralxc/pyscf/pyscf.py compute_KS: mf.chkfile: ', path)
     mf.xc = xc
+    print(' neuralxc/pyscf/pyscf.py compute_KS: mf.xc: ', xc)
+
+    # ----------------------------------------------------------------------
+    # --- PYSCF LEGBACK COMPATIBILITY: FORCE GRIDS EQUAL TO V1.7 BASELINE ---
+    # ----------------------------------------------------------------------
+    # 1. Force the legacy Becke multi-center partition scheme 
+    # (PySCF 2.x defaults to an updated, smooth partition framework)
+    # or use: dft.gen_grid.original_becke
+    mf.grids.becke_scheme = gen_grid.original_becke
+    
+    # 2. Force the legacy atomic integration pruning scheme
+    # (PySCF 2.x defaults to 'nwchem'; PySCF 1.7 defaulted to 'treutler')
+    mf.grids.prune        = gen_grid.treutler_prune
+    
+    # 3. Force the classic grid point distribution radii layout
+    # (PySCF 2.x updated its coordinate shell distributions for many elements)
+    # Ensures old coordination scaling
+    mf.grids.radii_adjust = radi.treutler_atomic_radii_adjust
+    # ----------------------------------------------------------------------
+
     mf.kernel()
     return mf, mol
 

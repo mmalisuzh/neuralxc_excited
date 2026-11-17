@@ -9,7 +9,7 @@ else:
 
 print('FILEPATH', path)
 
-basis = json.load(open(path, 'r'))
+basis = json.load(open(path))
 basis['engine_kwargs']['pseudoloc'] = os.path.abspath(basis['engine_kwargs']['pseudoloc'])
 basis['engine_kwargs']['fdf_path'] = os.path.abspath(basis['engine_kwargs']['fdf_path'])
 
