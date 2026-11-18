@@ -337,9 +337,11 @@ def get_config_from_root(root):
     # configparser.NoOptionError (if it lacks "VCS="). See the docstring at
     # the top of versioneer.py for instructions on writing your setup.cfg .
     setup_cfg = os.path.join(root, "setup.cfg")
-    parser = configparser.SafeConfigParser()
+    #parser = configparser.SafeConfigParser()
+    parser = configparser.ConfigParser()
     with open(setup_cfg) as f:
-        parser.readfp(f)
+        #parser.readfp(f)
+        parser.read_file(f)
     VCS = parser.get("versioneer", "VCS")  # mandatory
 
     def get(parser, name):
@@ -1216,14 +1218,25 @@ def versions_from_file(filename):
     return json.loads(mo.group(1))
 
 
-def write_to_version_file(filename, versions):
+def write_to_version_file(filename, values):
     """Write the given version number to the given _version.py file."""
-    os.unlink(filename)
-    contents = json.dumps(versions, sort_keys=True, indent=1, separators=(",", ": "))
+    try:
+        os.unlink(filename)
+    except FileNotFoundError:
+        pass
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "w") as f:
-        f.write(SHORT_VERSION_PY % contents)
+        f.write(SHORT_VERSION_PY % values)
 
-    print("set {} to '{}'".format(filename, versions["version"]))
+    print("set %s to '%s'" % (filename, values["version"]))
+#def write_to_version_file(filename, versions):
+#    """Write the given version number to the given _version.py file."""
+#    os.unlink(filename)
+#    contents = json.dumps(versions, sort_keys=True, indent=1, separators=(",", ": "))
+#    with open(filename, "w") as f:
+#        f.write(SHORT_VERSION_PY % contents)
+#
+#    print("set {} to '{}'".format(filename, versions["version"]))
 
 
 def plus_or_dot(pieces):

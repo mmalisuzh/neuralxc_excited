@@ -253,21 +253,36 @@ def load_pipeline(path):
             # ----------------------------------------------
         else:
             continue
-            
+
         # 2. Re-populate sub-species dictionaries if they exist
         if '_spec_dict' in state and state['_spec_dict']:
             new_step._spec_dict = {}
             for spec, sub_state in state['_spec_dict'].items():
                 if step_type == 'GroupedStandardScaler':
-                    sub_obj = StandardScaler()
+                    sub_obj = GroupedStandardScaler()
                 else:
-                    sub_obj = VarianceThreshold()
+                    sub_obj = GroupedVarianceThreshold()
                 for k, v in sub_state.items():
                     if isinstance(v, list):
                         sub_obj.__dict__[k] = np.array(v)
                     else:
                         sub_obj.__dict__[k] = v
+                sub_obj.is_fit = True
                 new_step._spec_dict[spec] = sub_obj
+        ## 2. Re-populate sub-species dictionaries if they exist
+        #if '_spec_dict' in state and state['_spec_dict']:
+        #    new_step._spec_dict = {}
+        #    for spec, sub_state in state['_spec_dict'].items():
+        #        if step_type == 'GroupedStandardScaler':
+        #            sub_obj = StandardScaler()
+        #        else:
+        #            sub_obj = VarianceThreshold()
+        #        for k, v in sub_state.items():
+        #            if isinstance(v, list):
+        #                sub_obj.__dict__[k] = np.array(v)
+        #            else:
+        #                sub_obj.__dict__[k] = v
+        #        new_step._spec_dict[spec] = sub_obj
         
         # 3. Re-populate top-level dictionary attributes
         for k, v in state.items():

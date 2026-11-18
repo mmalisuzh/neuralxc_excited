@@ -70,7 +70,13 @@ class GroupedTransformer(ABC):
         if fit_params.get('wrap_torch', True) and hasattr(self, '_spec_dict'):
             for spec in self._spec_dict:
                 trafo = self._spec_dict[spec]
-                trafo.torch_transform = convert_torch_wrapper(trafo.torch_transform)
+                if hasattr(trafo, 'torch_transform') and not getattr(trafo, 'is_wrapped', False):
+                    trafo.torch_transform = convert_torch_wrapper(trafo.torch_transform)
+                    trafo.is_wrapped = True            
+        #if fit_params.get('wrap_torch', True) and hasattr(self, '_spec_dict'):
+        #    for spec in self._spec_dict:
+        #        trafo = self._spec_dict[spec]
+        #        trafo.torch_transform = convert_torch_wrapper(trafo.torch_transform)
                 
         was_tuple = False
         if isinstance(X, tuple):
