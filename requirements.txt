@@ -18,4 +18,5 @@ opt_einsum
 codecov
 pyscf>=2.3.0
 tabulate
-git+https://github.com/semodi/libnxc.git@9c3b895840a000968866a44841291926fe29aab7
+#git+https://github.com/semodi/libnxc.git@9c3b895840a000968866a44841291926fe29aab7
+git+https://github.com/mmalisuzh/libnxc_excited.git@cc7a6875e7012dcc94a104d51cd71d3e425467d4
